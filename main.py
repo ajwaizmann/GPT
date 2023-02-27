@@ -1,9 +1,9 @@
 import openai
+from decouple import config
 
-APIKEY = "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"
 
 # Establish connection with openai
-openai.api_key = APIKEY
+openai.api_key = config("APIKEY")
 
 # Function that sends openai a query and returns gpt-3's response
 def get_gpt_response(query):
