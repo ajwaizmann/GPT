@@ -1,0 +1,1359 @@
+Contents lists available at ScienceDirect
+Automation in Construction
+journal homepage: www.elsevier.com/locate/autcon
+A BIM-based method to plan indoor paths
+Ahmed Hamieha, Aicha Ben Makhloufa,b, Borhen Louhichic, Dominique Deneuxa,∗
+a Université Polytechnique Hauts-de-France LAMIH, UMR CNRS 8201, Le Mont-Houy, Valenciennes CEDEX 9 59313, France
+b LATIS, ENISo, University of Sousse, Sousse 4023, Tunisia
+c LMS, ENISo, University of Sousse, Sousse 4023, Tunisia
+A R T I C L E I N F O
+Keywords:
+Path planning
+Indoors
+Mobility
+BIM
+IFC
+A B S T R A C T
+Humans more and more live in urban areas and spend the majority of their time indoors, while buildings are
+becoming increasingly interconnected. Path planning in complex indoor environments is consequently becoming
+a societal challenge. This paper proposes a system, called BiMov, dedicated to automatically determining plan
+paths in complex buildings based on a digital mock-up (a BIM in IFC format). The originality of the research
+comes from the separation of the BIM model topological analysis from the semantic and geometric consideration
+of the customer of the path planning service. The process consists in exploiting the semantic, geometric, and
+topological features of the constituents of a BIM to generate navigation graphs that take the proﬁle of MOoP
+(Mobile Object or Person) and the operational accessibility status of spaces and transitions (such as doors or
+stairs) into account. The ultimate aim is to determine the optimal path according to given criteria. The system is
+based on four data models: (1) a building model derived from the original BIM that represents and structures the
+building features relevant to indoor mobility; (2) a MOoP model representing its bulk size, ability to move
+horizontally and vertically, and various authorisations; (3) a calendar model representing the conjectural ac-
+cessibility status of spaces and transitions; (4) a navigation graph model proposing three levels of detail. The
+Macro level represents a simple graph of connectivity between neighbouring interior spaces and is intended to
+help architects verify their design in terms of accessibility. The External level is used to connect accessible spaces
+via their common horizontal or vertical transitions. This level is intended for MOoPs that do not require a
+detailed description of the path. The Internal level integrates meshing of each space: a 2D mesh for planar
+mobility or a 3D mesh for drones. This level is intended for MOoP such as heavy object handlers or autonomous
+mobile vehicles that need to validate a reliable path within spaces containing furniture, hazardous machinery, or
+bulky equipment. We developed a prototype software application that illustrates our approach for diﬀerent path
+planning scenarios in a BIM model generated outside this project.
+1. Introduction
+Path planning has become a basic service in modern society.
+Travelling in unknown outdoor environments is now much easier
+thanks to the Global Positioning System (GPS)-based technologies.
+Smart applications make it possible to ﬁnd an optimal route, taking into
+account public transportation schedules, detours, traﬃc congestion,
+and the proﬁle of the MOoP (Mobile Object or Person). Today, over
+50% of humans live in urban areas [1] and spend more than 90% of
+their time indoors [2] and buildings are becoming increasingly complex
+and interconnected [3]. That's why, path planning in indoor environ-
+ments is becoming increasingly necessary [4]. Modern metropolitan
+buildings are characterized by large numbers of irregularly shaped
+spaces, diﬀerent types of transitions between spaces on the same ﬂoor
+and between diﬀerent ﬂoors. The situation is similar in large industrial
+plants. However, there are also restricted areas because of hazards,
+social or technical conventions. In addition, the dynamic behaviour of
+the accessibility status of the spaces has to be taken into account due to
+maintenance or incidents [5, 6]. Consequently, path planning in indoor
+environments can become a complex issue, generating interesting re-
+search challenges and calling for novel solutions that will be beneﬁcial
+to building occupants, building managers, ﬁrst-time visitors, and
+maintenance operators, in their daily needs to move around these
+complex buildings.
+Indoor path planning has been widely studied in the ﬁeld of ro-
+botics, be it dedicated to real robots in real environments or to agents in
+virtual environments [7]. In both cases, to be able to navigate auton-
+omously, the mobile item must construct or possess a representation of
+https://doi.org/10.1016/j.autcon.2020.103120
+Received 7 July 2019; Received in revised form 31 January 2020; Accepted 3 February 2020
+∗ Corresponding author.
+E-mail address: dominique.deneux@uphf.fr (D. Deneux).
+Autom
+ation in Construction 113 (2020) 103120
+Available online 02 M
+arch 2020
+0926-5805/ ©
+ 2020 Elsevier B.V. All rights reserved.
+T
+the environment that carries enough semantics (location of obstacles,
+routes, or gates through obstacles), topological information (How are
+the routes connected to each other?), and geometrical information
+(How long is each route section? How wide is every obstacle? How wide
+is every gate?). Path planning represents a fundamental research pro-
+blem for various applications and lifecycle stages of buildings in the
+AEC industry [6, 8, 9], such as studying emergency evacuation sce-
+narios to check the conformity of the building at the design stage and
+route ﬁnding to guide workers, equipment or trucks on a construction
+site or to assist visitors or maintenance operators in an unknown en-
+vironment.
+Indoor path planning generally refers to ﬁnding an optimal path for
+MOoPs (pedestrians, persons with reduced mobility, autonomous mo-
+bile robots or driven vehicles) between two diﬀerent locations inside a
+building, avoiding static obstacles (walls, columns) or dynamic ob-
+stacles (movable walls, mobile obstacles). It is assumed that these
+models representing the building interiors might be useful to determine
+indoor paths automatically. Two types of indoor paths can be dis-
+tinguished in the literature. Graph models are more widely used for
+pedestrian navigation and grid models are encountered more for robot
+navigation [10, 11]. In addition, an intelligent path planning system
+should take into account the proﬁle of the MOoPs, their preferences,
+their ability to move, as well as the conjectural status of the interior
+spaces and transitions. The research topic addressed in this manuscript
+refers to automatic control, more precisely to supporting the design and
+optimization of complex systems (an automatically determined indoor
+path plan, from a BIM). The original research method is the decoupling
+of semantic, topological and geometric information interpretations to
+explicit optimized path plans according multiple criteria (ability to
+move, preferences, bulk, etc.). This paper deals with the issue of au-
+tomatic path planning in complex buildings. An overview of the sci-
+entiﬁc literature is presented in the following starting with the choice of
+a building model likely to represent a complex building from a navi-
+gation point of view.
+2. State of the art
+This section reviews the essential components relating to path
+planning and the scientiﬁc work regarding this issue such as building
+models, navigation models, routing models, and a review of diﬀerent
+applications of automatic path planning.
+2.1. Building models
+To execute automatic indoor path planning, it is necessary to have a
+model representing detailed information about the building interior
+including semantic, topological, and geometric features of the building
+components in relation to path planning such as places to visit (spaces),
+obstacles (walls, slabs, columns), and gates through obstacles (doors,
+stairs, ramps, lifts, windows, escalators) [5, 12]. Several standard
+models represent buildings in much more detail than generic CAD
+models. Among them, BIM (Building Information Models) in IFC format
+(Industry Foundation Classes) and GIS (Geospatial Information Sys-
+tems) models such as CityGML and IndoorGML [13, 14] embed precise
+geometric data in 3D, but also semantic data to identify the internal
+constituents of a building as well as their inter-relations.
+The IFC (Industry Foundation Classes) format covers all stages in the
+lifecycle of a building, from its design to its dismantling and is now a
+worldwide standard (ISO 16739) for BIM developed by BuildingSmart.
+With this format, it is possible to store both advanced geometric and
+semantic information about building components [15]. In IFC, the
+physical elements of the buildings can be represented according to
+highly semantic entities (wall: IfcWall, slab: IfcSlab, space: IfcSpace,
+etc.), their 3D geometry, their manifold attributes and detailed char-
+acteristics that are gathered in sets of properties (called P-Set), as well
+as the spatial relations, aggregation or composition between all these
+elements [15, 16].
+CityGML is a Geospatial standard developed and maintained by
+OGC (Open Geospatial Consortium) for the representation, storage, and
+exchange of virtual 3D models of cities and outdoor facilities [17, 18].
+CityGML is structured around ﬁve levels of detail (LOD0 to LOD4).
+LOD4 represents the interior of buildings, combining geometric and
+semantic information [19].
+BIM in IFC and CityGML models are both weak from a topological
+point of view, not in relation to the geometric data but in terms of the
+semantic data. The notion of neighbourhood or vicinity between spaces
+is not explicit and so artiﬁcial reasoning encompassing semantic, geo-
+metric, and topological data is necessary to determine whether a space
+is connected to another space by means of a door (horizontal connec-
+tion) or a lift (vertical connection). For example, in an IFC model, the
+IfcRelSpaceBoundary spatial relationship provides information about
+the
+physical
+and
+virtual
+borders
+of
+spaces,
+whereas
+IfcRelContainedInSpatialStructure
+provides
+information
+about
+the
+content of the spatial elements of a ﬂoor or a space [17], which can be
+exploited to search for walls common to two spaces.
+IndoorGML is also an OGC standard that aims to provide a common
+framework to represent the interior of buildings and an exchange
+format for indoor spatial information. An important concept of
+IndoorGML is the cellular space (indoor space as a set of cells identiﬁed
+and localized), providing semantics about the connectivity between
+cells (notably navigability: passage or obstacle). It is combined with 2D
+or 3D geometry, and the topology of the spaces is explicit. Connectivity
+is made explicit by a representation dual to the geometric model, in the
+form of graphs. Multi-layered representation of graphs is available to
+represent several kinds of connectivity (physical spaces, Wi-Fi areas,
+Bluetooth areas, RFID areas) [20].
+The latter three models can serve as the basis for automatic indoor
+path planning. Ryoo et al. [21] studied CityGML and IndoorGML from
+diﬀerent points of view, including their representations and theirs ap-
+plications. From a geometric and semantic point of view, the study
+shows that CityGML is richer than IndoorGML thanks to the geometric
+representation based on GM-Solid for spaces and GM-MultiSurface for
+building components such as walls, doors, and indoor installations, as
+well as numerous characteristics assigned to the surfaces of the com-
+ponents. From a topological point of view, as IndoorGML is dedicated to
+indoor navigation applications, it is far richer than CityGML. However,
+its use is rather limited (in particular for IndoorGML) compared to the
+IFC standard. An IFC model has a rich geometry that integrates the
+concepts of Constructive Solid Geometry (CSG), Boundary representa-
+tion (B-Rep), Swept Solid, clipping, bounding Box, etc. [15]. This rich
+geometric format makes it suitable to be converted into other formats,
+whereas the surface model is necessary in CityGML LOD4 [17]. Al-
+though IFC and CityGML are not speciﬁcally designed to support indoor
+path planning, they could be good supports for the automatic creation
+of navigation graphs based on semantic, geometric, and topological
+reasoning about the building constituents and their relations. However,
+using an IFC model as input seems preferable because of its maturity
+and the large number of users of this technology worldwide.
+2.2. Navigation models
+One approach to automatic path planning across internal navigation
+routes is known as the cell decomposition approach [22]. It consists in
+discretizing internal spaces in cells with predeﬁned shapes to char-
+acterize the interior environments and discriminate obstacles. This
+approach provides an implicit modelling ability to capture adjacency
+between neighbouring cells. Two main types of tessellation can be
+distinguished: (1) regular tessellation, which consists in discretizing
+spaces into uniform cells, most often square or rectangular cells; and (2)
+irregular tessellation, which aims to provide an adaptive decomposition
+of spaces that can provide an exact representation of the internal geo-
+metric complexity. The cells forming irregular partitions of spaces can
+A. Hamieh, et al.
+Autom
+ation in Construction 113 (2020) 103120
+2
+be diﬀerent shapes and sizes. The cell decomposition approach is
+usually used to plan the path of robots in limited environments because
+the number of cells required increases proportionally with the surface
+of a space.
+Another popular approach, which does not suﬀer from the same
+drawback, is based on graphs [23]. A graph is an implicit representa-
+tion of the interior environment showing an internal roadmap. It is
+notably used for path planning in large environments, unlike cell de-
+composition methods, because a single node of a graph can be used to
+represent any space. Two standardized types can be distinguished for
+graph-based approaches. The ﬁrst is the visibility graph [24] in which
+nodes represent the corners of spaces and boundary vertices of obstacles
+or gates (such as doors). The edges of the graph are the connections
+between mutually visible nodes. The second type is the generalized
+Voronoï graph [25], which consists in creating a set of nodes that are
+the farthest from any obstacles. These nodes are then connected by
+edges to generate roadmaps ensuring a maximal safety distance from
+every obstacle; edges that are too close to the obstacles are removed
+from the roadmap. These standardized methods were initially designed
+for robot path planning but can be adapted for all types of navigation,
+including pedestrian navigation [26]. Several graph models such as the
+dual graph [27], Medial Axis Transformation (MAT) [28], and the
+Centerline Graph [29] have been proposed and adapted for human
+navigation. Some authors have also applied the hierarchical graph to
+model complex indoor environments for pedestrian navigation pur-
+poses [4].
+2.3. Automatic BIM-based path planning approaches
+Several recent research articles report extracting and managing
+geometric and semantic information from IFC for various applications
+in the AEC industry such as BIM-based quantity take oﬀ [30], con-
+struction cost estimation [31, 32], and automatic rule-based checking
+[33, 34]. Indoor path planning is gaining interest and there are several
+approaches that are based on a BIM model to generate an indoor na-
+vigation model. In [8], the authors developed an automated system
+called InSightBIM-Evacuation to help designers and owners check
+evacuation regulation compliance of BIM data. The authors propose
+analyzing the properties of each building component to implement local
+evacuation regulations. In [35], the authors proposed a framework
+called EvacuSafe to evaluate the evacuation safety performance of a
+building. Multi-criteria risk indices, ﬁre simulation tools, the integra-
+tion of agent based modelling and building information models are
+considered to elaborate the system. The authors in [36] developed a
+BIM-Game system prototype that integrates BIM and computer games
+for interactive architectural visualization. The system comprises three
+major components: BIM, crossover, and game. The BIM module sends
+and receives BIM information to and from the crossover module, which
+processes intermediate information and facilitates communication be-
+tween the BIM and the game environments. The game module connects
+to the crossover and allows individuals to interact with the BIM model
+in real-time to evaluate its design quality during Design-Play. These
+connections bridge diverse areas such as building modelling, equipment
+simulation and visualization, collision detection, and navigation and
+path planning. The prototype [36] is available for Revit models only
+and has not been developed for standard IFC models yet.
+In the operating phase, Lin et al. [6] developed a method to cope
+with path planning in 3D indoor spaces based on an IFC ﬁle. The
+method comprises three main steps: (1) extraction of both geometric
+and semantic information about the building components from the IFC
+data; (2) sampling and mapping of the extracted information in a planar
+grid; (3) application of the fast marching method (FFM) algorithm to
+ﬁnd the shortest path in the grid. In this approach, the authors propose
+new Psets (property sets) to extend the IFC schema and enhance its
+semantics. Taneja et al. [37] developed algorithms to automatically
+generate navigation models from IFC data. The authors identify three
+types of navigation models: one based on the median of each space
+(centerline network), a second one based on the dimensions of the
+building components (metric network), and a third one based on a 2D
+grid of each ﬂoor. In the operating phase, Lin et al. [6] developed a
+method to cope with path planning in 3D indoor spaces based on an IFC
+ﬁle. The method comprises three main steps: (1) extraction of both
+geometric and semantic information about the building components
+from the IFC data; (2) sampling and mapping of the extracted in-
+formation in a planar grid; (3) application of the fast marching method
+(FFM) algorithm to ﬁnd the shortest path in the grid. In this approach,
+the authors propose new Psets (property sets) to extend the IFC schema
+and enhance its semantics. Taneja et al. [37] developed algorithms to
+automatically generate navigation models from IFC data. The authors
+identify three types of navigation models: one based on the median of
+each space (centerline network), a second one based on the dimensions
+of the building components (metric network), and a third one based on
+a 2D grid of each ﬂoor.
+In [38], Koch et al. developed a BIM-based augmented reality ap-
+plication, augmented with indoor markers such as exit signs or ﬁre
+extinguishers. Their application aims to help maintenance workers ﬁnd
+a possible path.
+In [39], the automated construction of a Variable Density Network
+(VDN) is proposed to determine egress paths in dangerous environ-
+ments. The 3D BIM model was created in Revit and exported to a sur-
+face representation stored in gbXML format. In this network, nodes
+represent spaces, whereas links represent adjacency relationships be-
+tween those spaces. In this paper, the authors use Dijkstra's algorithm to
+ﬁnd the shortest path in the constructed indoor network. Subsequently,
+to exploit the indoor network developed in [39, 40] better, the authors
+developed an algorithm based on a novel approach integrating the
+Analytic
+Hierarchy
+Process
+(AHP),
+Dijkstra's
+classical
+algorithm,
+Duckham-Kulik's algorithm, and three criteria: hazard proximity, dis-
+tance/travel time, and route complexity.
+Lee et al. [41] deﬁne a computational method for measuring
+walking distances within a building based on a length-weighted graph
+structure for a given building model. It is implemented as a plug-in
+software extension in Solibri Model Checkers. The concept is to create
+links between doors (door-to-door) and between vertical transitions
+(stairs-to-stairs).
+In [42], an “environment aware beacon deployment” algorithm
+coupled with BIM is proposed to support a sequence-based localization
+schema for locating ﬁrst responders and occupants trapped in a
+building ﬁre, where BIM is integrated to provide the geometric in-
+formation of the sensing area and evaluate the sensor deployment ef-
+fort.
+Some authors have attempted to combine and extend BIM and
+CityGML. For example, Isikdag et al. [13] developed a BIM Indoor-
+Oriented Data Model (BO-MI). They transferred a BIM model to a geo-
+located environment (based on ArcGIS), preserving all the geometric
+and semantic information needed to study indoor navigation. The
+pattern of the enriched model is similar to the IFC model. In [12], the
+authors developed an Indoor Emergency Spatial Model (IESM) based on
+IFC, dynamic information, and outdoor information. The system is
+dedicated to indoor or outdoor navigation in case of disasters. In [43],
+authors proposed a system to study the indoor building model which
+can support the barrier-free path-ﬁnding. They described methods to
+extract indoor space elements and to deﬁne the geometry layer, the
+topology layer and the semantic layer in order to ﬁnd the path of an
+ordinary patient or a wheelchair. Unfortunately, they didn’t consider
+other types of users such as medical staﬀ and heavy objects handlers
+like the drone. In [44], a BIM-based multi-purpose geometric network
+model (MGNM) is proposed and the strategy of indoor and outdoor
+network connections is explored. The IFC-to-MGNM conversion in-
+cludes (1) extraction of building information from IFC, (2) isolation of
+the MGNM information from the aforementioned building information,
+and (3) creation of the topological relationships of the MGNM in the
+A. Hamieh, et al.
+Autom
+ation in Construction 113 (2020) 103120
+3
+GIS Geodatabase.
+2.3.1. Approaches comparison and open issues
+With a view to highlighting open issues, a comparative study of the
+approaches mentioned above is summarized in Table 1 according to
+diﬀerent criteria in relation to automatic indoor path planning re-
+quirements. These include whether they respect the IFC standard,
+whether they are applicable to both vertical and horizontal mobility,
+whether they consider diﬀerent MOoP proﬁles, the conjectural acces-
+sibility of spaces, the possible presence of hazardous areas, and the
+possibility of extending the path planning to outdoors.
+The comparison in Table 1 shows that it is diﬃcult to ﬁnd a fully
+generic approach for indoor path planning. (1) Path planning is almost
+always addressed statically, without taking into account the variable
+status of the building spaces and gates that require alternative routing
+due to hazardous maintenance works or temporary modiﬁcations of the
+building's operating conditions. (2) Path planning focuses on pedestrian
+navigation, without taking into account other types of MOoPs such as
+wheelchairs, robots, and rolling or ﬂying objects. (3) The approaches
+implicitly consider empty spaces in which no particular restrictions on
+movement apply, although it is obviously not the case in residential
+buildings due to furniture, and in industrial facilities because of ma-
+chines and hazardous areas.
+2.3.2. Resolutions
+Further research is required to take into account the dynamic status
+of the spaces, the proﬁle of the MOoPs that are likely to circulate in the
+building, and the contents of the spaces to propose a suitable path.
+These criteria should be combined to propose a more generic approach
+that could overcome the shortcomings of existing methods. The fol-
+lowing section details the components of an original approach to au-
+tomatic path planning based on a BIM in IFC.
+The aimed output path is the optimal path (feasible and shortest)
+and the cost function we used is the distance. In fact, the best path for a
+pedestrian is not necessarily the best one for a robot, a pallet truck, a
+wheelchair, or a drone. Restrictions regarding spaces or gates may be
+related to the physical features of a given MOoP (overall size, weight),
+the permitted mobility modes (ability to move horizontally and verti-
+cally, to climb stairs or ramps, to turn, to ﬂy), social or technical au-
+thorisations (visitor, employee, security staﬀ, VIP), or regulatory rea-
+sons, as suggested in enterprise circulation guides [47]. So, a model of
+each MOoP susceptible to require a path planning service is needed.
+Furthermore, the indoor environment of a building may undergo
+planned temporary changes due to heavy maintenance works (a gamma
+radiation shot in a nuclear power plant to survey the piping network,
+for example), or modiﬁcations to the building's operating conditions
+due to weekly or daily opening hours. Some unplanned modiﬁcations
+may also be derived from an incidental situation as soon as it is de-
+tected, such as an escalator malfunction. These changes impact the
+possibilities of movement. A model of planned or detected events
+should be managed in a calendar for every space and transition in the
+building.
+3. Proposed approach
+The proposed system is called BiMov and is for automatic indoor
+path planning in complex buildings. Path planning is structured around
+three levels of navigation graphs: Macro, External, and Internal. The
+Macro graph was built to deﬁne the topological model of the interior of
+a building, establishing a connectivity graph of all the interior spaces.
+This level allows architects to validate architectural designs in terms of
+accessibility, i.e., to check that all the spaces are connected and that
+there are no isolated spaces. The External graph clariﬁes the possible
+paths between spaces, avoiding structural obstacles (walls, columns).
+The Internal graph details the possible paths avoiding the obstacles
+(furniture, machinery, equipment) inside each space.
+The path ﬁnding method in BiMov is illustrated in Fig. 1.
+First, the elements relevant to path planning are extracted from the
+building model in IFC according to their nature (semantical analysis).
+Spaces are the places to be visited; walls, slabs, and columns are ob-
+stacles preventing mobility; and doors, stairs, ramps, lifts, escalators,
+and openings in walls are gates across obstacles. The relations between
+these elements are then analyzed from topological and geometrical
+points of view, and processed algorithmically to explain the notion of
+neighbourhood between spaces. An example of topological analysis is if
+the physical border of a space contains an opening ﬁlled with a door
+element, then the door is a potential gate to access the space. An ex-
+ample of a geometrical analysis is if a slab is crossed locally by a
+stairway in every dimension of the Euclidean space (X,Y,Z), then the
+stairway is a potential gate to access the space possessing this slab. An
+example of algorithmic reasoning is if a door is a gate to two diﬀerent
+spaces, then this door is a transition between the two spaces. In the
+Macro graph, each space is represented by a node arbitrarily located at
+the center of gravity of the space envelope. An edge is created between
+every pair of nodes connected by a common gate. In the External graph,
+an edge is created between each space and each of its gates. Therefore,
+the Macro graph represents a simple connectivity graph between all the
+spaces connected to each other, whereas the External graph details all
+the sequences of spaces and transitions that can potentially be traversed
+by a MOoP, regardless of its nature, abilities or preferences and re-
+gardless of the accessibility status of the spaces and transitions. An
+Internal graph is then created in each space, in 2D (on the ﬂoor) for
+ground mobility and in 3D for drone mobility. It consists of a mesh
+connecting a randomly generated set of internal nodes of controlled
+density. The density inﬂuences the precision of the path that will later
+be computed.
+Both the External and Internal graphs are likely to be reduced
+(nodes and arcs may be removed from the graph) according to the
+proﬁle of the MOoP or to the conjectural accessibility status of the
+spaces and transitions.
+The characteristics of a MOoP are extracted from its MOoP data
+model, which represents all the characteristics of the MOoP in relation
+to path planning such as its physical bulk, its authorisations, its capa-
+cities, and movement restrictions. The accessibility status of the spaces
+is extracted from a calendar data model [48-50].
+To illustrate the path planning process, we suppose the graph
+G = (Vaccessible,Eaccessible) where:
+Table 1
+Comparative study of the approaches.
+Criteria
+Life cycle phase
+Design
+Construction
+Operation
+Compliance with IFC standard
+[8, 35, 42]
+–
+[37, 39, 41, 44]
+Horizontal and vertical navigation
+[8, 35, 36]
+–
+[4, 6, 10, 12, 43]
+Consideration of the MOoP proﬁle
+–
+[45, 46]
+–
+Consideration of space dynamics
+[36]
+–
+[12, 38, 43]
+Consideration of hazardous areas
+–
+[45, 46]
+–
+Consideration of outdoor paths
+–
+[45, 46]
+[12, 13, 44]
+A. Hamieh, et al.
+Autom
+ation in Construction 113 (2020) 103120
+4
+– Vaccessible: is the node set representing the accessible spaces indicated
+available in the calendar model.
+– Eaccessible : is the set of the arcs representing accessible paths con-
+necting the spaces, such as if (v1,v2) ∈ Eaccessible, then there is an arc
+from the node v1 ∈ Vaccessible to the node v2 ∈ Vaccessible.
+–
+�
+=
+→
++
+C
+Eaccessible
+is a weighting of the arcs.
+The weight of the path (e1,…,ek) joining two nodes is expressed as: ∑
+iC(ei), which represents the sum of the weights of the arcs that compose
+it. To ﬁnd the optimal path we apply the theory of Dijkstra: given a pair
+of nodes: vstart (the node of departure) and vend (the node of arrival), the
+algorithm ﬁnds a path from vstart to vend of lower weight (i.e., the shorter
+path).
+3.1. BiMov data models
+The proposed system is based on four data models: (1) a building
+model; (2) a MOoP model; (3) a calendar model; and (4) a navigation
+model. These models are detailed in the following sections.
+3.1.1. Building model
+This model is speciﬁcally designed to represent indoor environ-
+ments for path planning purposes. The basic classes of the BiMov
+building
+model
+are:
+Indoor_Space,
+Horizontal_Transition,
+Vertical_Transition, and Obstacle. The class diagram of the building
+model is represented in Fig. 2.
+• The Indoor_space class is fundamental for interior path planning. A
+space in BiMov is represented by a 3D volume bounded by building
+elements such as walls, doors, windows, and optionally contains
+furniture or equipment. Spaces are associated with a ﬂoor by means
+of an aggregation relationship. The main attributes assigned to the
+Indoor_space class are Name, GlobalID, Height (higher, lower, and
+net), surface area, type, and minimum administrative authorisations
+required to access it. Authorisations are represented by a vector Ha
+(X) of size m in which the index X refers to a requirement (ability to
+see, ability to hear) or an authorisation (electrical qualiﬁcation,
+security authorisation) and a value, between 0 and 100, the
+minimum level required for a MOoP to navigate in the space. For
+example, if Ha(i) is 0, it means that a MOoP does not need any
+special authorisation i to access this space.
+• The Horizontal_Transition (HT) class: a HT connects neighbouring
+spaces located on the same ﬂoor. HT is a generalization of the
+classes Door, Opening, and Window. The attributes assigned to each
+class are visible in Fig. 2.
+• The Vertical_Transition (VT) class: a VT connects neighbouring
+spaces located on diﬀerent ﬂoors. VT is a generalization of the
+classes Stair, Lift, Escalator, and Ramp. The attributes assigned to
+each class are visible in Fig. 2.
+• The class Obstacle is a non-navigable area because it is occupied by
+a permanent physical building constituent. The Obstacle class is a
+generalization
+of
+the
+classes
+Wall,
+Column,
+Furniture,
+and
+Equipment. The classes Furniture and Equipment are identiﬁed
+diﬀerently. Equipment, conversely to Furniture, can convey the
+notion of hazardous area, which induces a buﬀer distance to pre-
+serve the MOoP's safety when circulating in its neighbourhood.
+Fig. 1. Workﬂow of BiMov system.
+A. Hamieh, et al.
+Autom
+ation in Construction 113 (2020) 103120
+5
+3.1.2. MOoP model
+One of the originalities of BiMov is the consideration of MOoP
+proﬁles in the search for an adequate path. For this purpose, BiMov
+integrates a MOoP data model, collecting in a vector all the important
+features characterizing what a MOoP Is (length, width, height, mass,
+average speed, max speed, max slope), Prefers (stairs, escalators, large
+spaces, etc.), and Is Able to do (see, hear, rotate around z, climb stairs,
+climb ramp, electric ability, authorisation level, etc.) with respect to
+mobility. The average speed (V) will be useful to estimate the time to
+destination. The authorisations depend on the function and the hier-
+archical level. The content of the MOoP model is summarized in
+Table 2.
+All the values in the Ha vector are standardized with real values
+representing a percentage of the maximum allowance or ability (Fig. 3),
+from zero (e.g. an intruder) to 100 (e.g. the Chief security oﬃcer).
+The reference point of a MOoP is arbitrarily placed at the center of
+gravity of the bounding box envelope. In the case of planar navigation
+(2D scenario), i.e. the MOoP is a person or a rolling object, the reference
+point of the MOoP is projected onto the ﬂoor.
+A distance D (in mm) is associated with each MOoP in order to
+summarize its physical bulk. D is used as a safety distance with respect
+to every obstacle. This distance depends on the physical dimensions of
+the MOop (L, l, and H), as well as its ability to move (Tx, Ty, Tz) and to
+turn (Rx, Ry, Rz). In the case of walking or rolling MOoP (when the
+rotation around X and Y is blocked), the distance D = Dxy is calculated
+from the longitudinal (L) and transverse (l) dimensions and the
+minimum yaw radius (Rz). D is equal to half of the swept width (Sw)
+Fig. 2. Class diagram of the BiMov building model.
+Table 2
+Relevant features of a MOoP.
+Type
+Description
+L
+Length [mm]
+Longitudinal dimension of the bounding box (along the X
+axis)
+l
+Length [mm]
+Transversal dimension of the bounding box (along the Y
+axis)
+H
+Length [mm]
+Vertical dimension of the bounding box (along the Z axis)
+Tx
+Boolean
+Ability to move along the X axis of the MOoP (T/F)
+Ty
+Boolean
+Ability to move along the Y axis of the MOoP (T/F)
+Tz
+Boolean
+Ability to move along the Z axis of the MOoP (T/F)
+Rz
+Length [mm]
+Yaw radius, or − 1 if the rotation is blocked
+Rx
+Length [mm]
+Roll radius, or − 1 if the rotation is blocked
+Ry
+Length [mm]
+Pitch radius, or − 1 if the rotation is blocked
+M
+Mass [kg]
+Mass of MOoP
+P
+Angle [deg]
+Maximum allowable slope
+S
+Boolean
+Ability to climb stairs (T/F)
+V
+Speed [m⋅s−1]
+Average speed of the MOoP
+Ha[]
+Array of reals
+List of preferences and allowances
+A. Hamieh, et al.
+Autom
+ation in Construction 113 (2020) 103120
+6
+when the MOoP turns with the minimal radius permitted by its yaw
+ability (Fig. 4) such as:
+=
+=
+−
+Dxy
+Sw
+Rex
+Rin
+2
+2
+=
+−
+Rin
+Rb
+1
+2
+=
++
++
+(
+)
+(
+)
+( )
+Rex
+Rb
+L
+1
+2
+2
+2
+2
+In the case of a ﬂying MOoP, D is assigned the highest safety value:
+D = Max (Dxy, Dyz, Dzx) The MOoP model is intended to be managed
+by the MOoP itself by means of a subscription to an online BiMov
+service (in future developments), or a MOoP proﬁle administrator (in
+the current prototype), responsible for creating new MOoP models or
+editing MOoP features.
+3.1.3. Calendar model
+To address the dynamic aspect, BiMov is based on an external ca-
+lendar model, which permanently reﬂects the accessibility status of
+spaces and transitions. The calendar links information about building
+elements, represented by their GlobalId, with information about the
+nature of the events that impact accessibility to these elements, as well
+as the minimum proﬁle not impacted by these events (maintenance
+engineers should continue to be allowed to access the space where
+maintenance is needed, ﬁremen should be allowed to circulate every-
+where even in case of ﬁre).
+For each event, the calendar stores the following information:
+• Type: type of event (maintenance, closure, incident…).
+• Participant: minimum proﬁle to allow access despite the event.
+• Location: the list of spaces and transitions aﬀected by the event.
+• Date: date at the beginning and end of the event.
+• Repetition: if the event must be repeated, as for opening and closure
+hours.
+The calendar is designed to be managed by one or more adminis-
+trators, notably responsible for adding new events by specifying the
+relevant characteristics, modifying, or deleting events. The calendar
+must be synchronized with the navigation graphs through the GlobalId
+of each space and each transition.
+3.1.4. Navigation model
+BiMov analyzes the interior of the building and transforms it into
+more or less detailed navigation graphs, according to the requirement.
+Three graph models are used in BiMov
+Macro
+graph:
+The
+Macro
+graph
+Gmacro
+is
+expressed
+by
+{Vmacro;Emacro} where:
+– Vmacro is the node set representing the centers of gravity of indoor
+spaces (Red nodes in Fig. 5).
+– Emacro is the edge set representing the connections between spaces
+when there is a topological relation between them (Black arcs in
+Fig. 5).
+Emacro = {e = (ni,nj) such as (ni,nj ∈ Vmacro) and (ni,nj are the spaces
+sharing a common vertical or horizontal transition)}.
+The main utility of this model is to allow architects to verify the
+accessibility of all the spaces during the design phase.
+External graph: The External graph Gextern is expressed by
+{Vextern;Eextern} where:
+– Vextern is the node set representing centers of gravity of indoor spaces
+(Red nodes in Fig. 6) as well as vertical and horizontal transitions
+Fig. 3. Percentage of the MOoP's allowance/ability.
+Fig. 4. Swept width during a yaw.
+A. Hamieh, et al.
+Autom
+ation in Construction 113 (2020) 103120
+7
+(Green nodes in Fig. 6).
+– Eextern is the edge set representing the connections between each
+space and its associated transitions (Black arcs in Fig. 6).
+Eextern = {e = (ni,nj) such as (ni,nj ∈ Vextern) and (ni,nj represent a
+couple of spaces and a transition associated with this space)}.
+This model represents the set of simpliﬁed paths for MOoPs. It is
+designed for proﬁles that do not need a high level of detail to reach
+their destination such as pedestrians without any luggage.
+Internal
+graph:
+The
+internal
+graph
+Gintern
+is
+expressed
+by
+{Vintern;Eintern} where:
+– Vintern is the node set generated by a mesh of controlled density (Red
+nodes is Fig. 7), which can be generated either randomly or ac-
+cording to a regular pattern inside a shape.
+– Eintern is the edge set representing the connection between accessible
+neighbouring nodes (Black arcs in Fig. 7), which can be generated
+using, for example, a classical Delaunay triangulation.
+Eintern = {e = (ni,nj) such as (ni,nj ∈ Vintern) and (ni,nj are the
+neighbouring nodes in the mesh)}.
+This model represents the set of detailed paths for MOoPs within a
+space. It is designed for proﬁles that need a high level of detail to reach
+their destination such as a carrier with a large forklift.
+3.2. Restrictions according to a MOoP proﬁle
+To consider navigation restrictions according to the proﬁle of a
+MOoP, BiMov combines geometric and semantic criteria based on in-
+formation extracted from the MOoP model and from the building
+Fig. 5. The macro graph model. (For interpretation of the references to color in this ﬁgure, the reader is referred to the web version of this article.)
+Fig. 6. The external graph model. (For interpretation of the references to color in this ﬁgure, the reader is referred to the web version of this article.)
+A. Hamieh, et al.
+Autom
+ation in Construction 113 (2020) 103120
+8
+model. The geometric criterion is used to consider the MOoP bulk in the
+3 dimensions, even in case of ground mobility (the ability for a mobile
+robot to go through a door is checked geometrically, as well as the
+ability for a drone to go through an opening in a wall); the semantic
+criterion corresponds to a set of veriﬁcations based on semantic in-
+formation characterizing each building element (obstacle or passage)
+and each MOoP (what he/she/it can, wishes, or may).
+For External graphs, only vertical and horizontal transitions are
+considered to search for crossable transitions. Table 3 below sum-
+marizes the main checks applied for each type of transition.
+For Internal graphs, BiMoV generates a buﬀer area around obstacles
+such as walls, columns, furniture or equipment. The width of the buﬀer
+zone is the distance D associated with the candidate MOoP. The buﬀer
+areas are considered as non-navigable zones for the MOoP, so the nodes
+inside these zones are considered as inaccessible nodes and are deleted
+from the internal graph. This method is inspired from the Minkowski-
+Sum method [51], which has been widely used to identify inaccessible
+areas for robot path planning. In the case of hazardous obstacles such as
+equipment or machinery that require a minimum safety distance to be
+respected, the width of the buﬀer zones are equal to D of the MOoP + D
+safety (D safety is extracted from the building model as an attribute
+assigned to the equipment class). Fig. 8 below illustrates the avoidance
+of an obstacle by a MOoP on the ground by means of a 2D buﬀer zone.
+3.3. Restriction according to the status of spaces and transitions
+This section aims to describe how BiMov takes into consideration
+the status of the spaces and transitions, which may vary during the
+operation of the building. The calendar model identiﬁes and keeps the
+status of spaces and transitions up to date. This calendar is linked to the
+graph models by the names and the globalId deﬁned in the original BIM
+model in IFC.
+The principle is to eliminate the nodes (in the External graph), or
+the sets of nodes (in the Internal graph) corresponding to spaces or
+transitions that are indicated as non-available in the calendar model so
+that the planned path can be determined based on accessible spaces and
+transition elements only. The most obvious approach, which can be
+considered as optimistic, is to check the status of the elements at the
+departure time only, either immediate or planned. However, there is a
+risk that an element may become unavailable at a later time, which
+would prevent the MOoP from executing the planned path. To eliminate
+this risk, a second approach, which can be considered as pessimistic, is
+to check the availability of the elements throughout the entire planned
+duration of the route. It is much more diﬃcult to compute, as the total
+duration of the trip depends on the list of elements involved in the path,
+whereas the path is a priori unknown. A trial and error approach can be
+used by assuming that all the elements are available, computing the
+optimal path, computing the duration of the trip based on the standard
+velocity of the MOoP or on the standard velocity of the means of
+transportation (lift or escalator), then checking whether the elements
+involved are really available during the computed duration. If some
+elements prove to be unavailable, the whole process is repeated with all
+the elements available, except those proven to be unavailable.
+Moreover, after determining a guaranteed path, some elements might
+be eliminated abusively because they are unavailable during a period of
+time within the duration of the trip, but might be available at the
+Fig. 7. The intern graph model. (For interpretation of the references to color in this ﬁgure, the reader is referred to the web version of this article.)
+Table 3
+veriﬁcation applied to External level.
+Geometric approach
+Semantic criteria
+Door
+LDoor ≥ 2 * D & HDoor ≥ HMOoP
+Check authorisations
+Opening
+LOpenning ≥ 2 * D & HOpening ≥ HMOoP
+Check authorisations
+Window
+LWindow ≥ 2 * D & HWindow ≥ HMOoP
+Check authorisations
+Stairs
+LStair ≥ 2 * D & lStair ≥ 2 * D & Hnetstair ≥ HMOoP
+Check authorisation and ability
+Lift
+LLift ≥ 2 * D & lLift ≥ 2 * D & HLift ≥ HMOoP
+Check authorisation and mass
+Escalator
+LEscalator ≥ 2 * D & lEscalator ≥ 2 * D & HnetEscalator ≥ HMOoP
+Check authorisations
+Ramp
+LRamp ≥ 2 * D & lRamp ≥ 2 * D & HnetRamp ≥ HMOoP
+Check authorisation and slope
+A. Hamieh, et al.
+Autom
+ation in Construction 113 (2020) 103120
+9
+precise moment when the MOoP needs to cross them. A third solution,
+which can be considered as fair, is to check the status of each element at
+the exact moment when the MOoP requires to cross it. The computation
+of this exact path is even more diﬃcult because the exact time of arrival
+at each element has to be predicted, as well as the duration of the trip
+within the element, before checking the availability of this element
+during this period of time. Given suﬃcient information about the
+availability/unavailability of all the spaces in the future (based on a
+calendar), it must be checked whether each space of a potential path
+will actually be accessible, exactly when the MOoP will require it to be
+accessible. So, as to estimate this exact moment, it is necessary to use
+the model of velocity of the MOoP or the speed of its transportation
+means (lifts, escalators). The path computed this way is likely to be
+more restrictive than the one based on the optimistic approach, but less
+restrictive than the one based on the pessimistic approach. To do this,
+the system ﬁrstly computes a path based on the optimistic approach and
+then checks the status of all the elements in sequence, taking into ac-
+count the time of arrival at this element Ti and the duration of stay ∇Ti.
+If an element proves to be unavailable during ∇Ti, a new shortest path is
+computed among the elements, except the unavailable ones. If the
+element proves to be available during ∇Ti, the next element along the
+path is checked after predicting the time of arrival at this point: Ti
++1 = Ti + ∇Ti. Therefore, the system proposes three options for
+computing the shortest path taking these aspects into account (Fig. 9).
+4. Implementation of the system
+The purpose of this section is to describe the prototype that was
+developed to illustrate the feasibility of the approach using modern
+technology.
+4.1. BiMov development environment
+An open software development environment able to read and
+browse a standard IFC ﬁle, extract the geometry, perform geometric
+reasoning, and visualize this geometry in 3D was required in which we
+could develop original algorithms to create a building model focused on
+mobility, manage MOoP proﬁles and calendars of events, perform se-
+mantic, geometric, and topological reasoning, create the Macro,
+External, and Internal graphs, implement the Dijkstra's shortest path
+algorithm, and display the results in 3D. The basic functionalities are
+available in the IfcOpenShell open source software library [52]. IfcO-
+penShell uses Open CASCADE (in short: OCC) [53] internally to convert
+the implicit geometry of IFC2×3 ﬁles into explicit geometry that can be
+displayed and exploited. The original algorithms based on this en-
+vironment were developed in Python, a compact object-oriented
+computer language independent of any Operating System, which can be
+interpreted or compiled.
+The data schemes to represent MOoP proﬁles, as well as calendars of
+events, were implemented using MS-Excel spreadsheets. The Human
+Machine Interfaces (HMI) dedicated to the administrators in charge of
+editing MOoP proﬁles and calendars of events or the system users, i.e.,
+building creators (architects) or building users (visitors) were devel-
+oped with Tkinter, the standard HMI module of Python.
+4.2. Analysis of the IFC model
+Fig. 10 below illustrates the correspondences between the BiMov
+building model concepts and the relevant entities of a standard IFC2*3
+model. The IFC model entities that are meaningful for indoor mobility
+are represented with a blue background and include IfcBuilding, Ifc-
+BuildingStorey,
+IfcSpace,
+IfcDoor,
+IfcWindow,
+IfcStair,
+Ifc-
+TransportElement, IfcRamp, IfcWall, IfcColumn, IfcFurnishingElement,
+and IfcDistributionElement. In BiMov, they correspond to the concepts
+of building, ﬂoor, space, door, window, opening, stairs, transport ele-
+ment (lift and escalator), ramp, wall, column, furniture (table, sofa,
+chair, desk), and equipment, respectively. In IFC models, the classes
+IfcDoor, IfcOpeningElement, IfcWindow are explicitly used to identify
+the corresponding building elements. A horizontal transition is a pas-
+sage between two neighbouring spaces located on the same level. An
+opening is a gate in a wall. It may be left empty, or ﬁlled with a door or
+a window. An empty opening can be crossed by a pedestrian, by a wheel
+chair or by a drone. A door can be crossed by the same three MOoPs
+only if they are allowed to cross the door, which represents a physical
+border. A window would normally not be suggested as a transition for a
+pedestrian (except in case of emergency), but cannot be used at all by a
+wheelchair. However, the window remains acceptable for a drone.
+The IFC model is not directly dedicated to path planning. In fact, the
+topological model space connectivity is not explicit in IFS, so an algo-
+rithmic treatment is necessary to make the notion of neighbourhood
+between spaces implicit. In principle, two neighbouring spaces are two
+spaces that share a common transition. This can be a horizontal tran-
+sition, i.e. to navigate on a ﬂoor through a door, opening; or a vertical
+transition, i.e. to navigate between ﬂoors via stairs, lifts, or ramps.
+For
+a
+horizontal
+neighbourhood,
+the
+system
+exploits
+the
+IfcRelSpaceBoundary relation, which provides information about the
+physical and virtual boundaries of every space that is useful to reveal
+the notion of neighbourhood. The attributes related to this relationship
+are used to identify the boundary elements (RelatingBuildingElement)
+as well as the reference space (RelatingSpace). The principle is to
+identify common walls with openings and common doors between pairs
+of spaces. Non-closed openings or openings ﬁlled with a door or
+Fig. 8. Creating a buﬀer zone around obstacles.
+A. Hamieh, et al.
+Autom
+ation in Construction 113 (2020) 103120
+10
+Fig. 9. Possible options to consider the state of spaces and transitions.
+Fig. 10. Correspondences between BiMov classes and IFC model entities.
+A. Hamieh, et al.
+Autom
+ation in Construction 113 (2020) 103120
+11
+window suggest creating a connection between every pair of spaces
+with such a common transition (non-ﬁlled opening, door, or window).
+Fig. 11 illustrates the case of Door and Window.
+For a vertical neighbourhood, no direct relationship between the
+spaces and the vertical transitions connecting them can be extracted
+from the IFC schema. BiMov uses a set of geometric and semantic al-
+gorithms to match the vertical transitions and related spaces. The rea-
+soning process leads to the creation of a list of neighbouring elements in
+which each neighbourhood relation is expressed in the form: Space ↔
+transition (vertical/horizontal) ↔ Space.
+5. Validation scenarios
+5.1. Data preparation
+Several IFC models have been found on the Internet, including on
+the University of Auckland New Zealand website (http://openifcmodel.
+cs.auckland.ac.nz), which oﬀers an open base of IFC models. Other
+simpler (http://ifcopenshell.com) or more complex models (http://
+www.ifcwiki.org), were used during the development phase.
+Several MOoP proﬁles were created of which the proﬁles are dif-
+ferentiated by their size, abilities, and level of authorisation.
+5.2. Graph creation
+5.2.1. Macro level
+In BiMov, this level can help the architect save time and reduce his/
+her analytical eﬀort by automatically revealing the isolated spaces at
+the design stage. Two models have been chosen to validate the utility of
+this level.
+For model 1 (Fig. 12), the Macro graph is represented in the OCC
+interface. The ESP symbol locates the center of gravity of a space and
+the red lines represent the arcs of the graph.
+The results show that the design of this model is validated in rela-
+tion to accessibility. The nodes that represent the interior spaces are all
+connected and there is no single node, which means that all the spaces
+are accessible.
+However, the Macro graph generated on model 2 shows that there
+are design ﬂaws in the project (Fig. 14). Several isolated spaces are
+identiﬁed on the fourth ﬂoor. These isolated nodes are highlighted in
+the OCC interface and are listed in the neighbourhood list collected in
+an MS-Excel spreadsheet representing the arcs of the Macro graph.
+Using the Macro Graph in BiMov at the design stage can help the ar-
+chitect save time and reduce his/her analytical eﬀort by automatically
+revealing the isolated spaces (Fig. 13).
+5.2.2. External level
+This scenario is based on a building model containing two staircases
+and one lift. Three MOoP proﬁles are considered (Visitor, Service agent,
+and Pallet truck). One of the staircases is reserved for staﬀ. The lift is
+public and lift maintenance is reported in the calendar of events.
+For a visitor proﬁle, the path found by BiMov is illustrated in
+Figs. 15 and 16. We observe that when there is no disruption, the
+shortest route for a visitor is to take the lift (Fig. 15).
+The path through the stairs for staﬀ is not oﬀered to him (lack of
+ability), although this path is shorter.
+When the lift is unavailable, the path proposed by BiMov is to take
+the public staircase, even though it is not the shortest path because a
+visitor does not have the right to use the stairs reserved for the staﬀ
+(Fig. 16).
+In the same conditions, the path computed for the service agent
+proﬁle suggests taking the stairs reserved for the staﬀ (Fig. 17).
+For a pallet truck proﬁle, no path can be found when the lift is
+unavailable because its ability to move does not allow it to use the stairs
+(Fig. 18).
+(Fig. 19) illustrates the path found for the “pallet truck” proﬁle in
+the presence of the lift. Geometric checks to cross doors are validated
+(the distance D associated with the pallet truck is 0.43 m, so 2*D Width
+of the doors is 0.9 m and the height of the pallet truck H is less than the
+height of the doors which is 2.1 m). In addition, the weight of the
+seafarer is less than the maximum lift capacity. As a result, BiMov al-
+lows the pallet truck to use the lift.
+Fig. 11. Case of a door and a window.
+A. Hamieh, et al.
+Autom
+ation in Construction 113 (2020) 103120
+12
+5.2.3. Internal level
+The interest of this level is to take into account the interior of each
+space, namely the possible presence of internal obstacles (furniture or
+equipment) which can restrict the movement of a MOoP.
+In this scenario, the interior space extracted from the building
+model contains furniture, represented by their bounding box in the
+Open CASDADE environment. This space is analyzed in relation to two
+MOoP proﬁles (a valid biped visitor and a drone) to compute an in-
+ternal optimal path for these MOoPs.
+Fig. 20-1 shows the reduced 2D random mesh created on the ﬂoor,
+after creating a buﬀer zone around the surrounding walls and the in-
+terior obstacle footprint, taking the oﬀset value of 0.335 m reported in
+the MOoP model. Fig. 20-2 shows the optimal 2D path for the biped
+visitor.
+Fig. 21-1 shows the reduced 3D mesh created in the volume, after
+creating a buﬀer zone around the surrounding walls and the interior
+obstacle, taking the oﬀset value of 0.3 m reported in the drone model.
+Fig. 21-2 shows the optimal 3D path for the drone.
+5.2.4. Critical analysis
+In the Macro level, two building models were tested. The results
+showed that BiMov allows to automate the analysis of the accessibility
+of all spaces of a building, during the process of validation of an ar-
+chitectural design.
+In the external level, a building model capable of oﬀering diﬀerent
+possibilities between the same two starting and ﬁnishing points was
+used for the following purposes:
+– The navigator proﬁle, depending on its geometric characteristics,
+physical characteristics (weight), ﬁtness for movement (in particular
+ability) can be used as a constraint to propose a shorter path adapted
+to the navigator.
+– The state of availability/unavailability of a space can be taken into
+account to propose a path adapted to the temporal circumstances of
+the search for the shortest path.
+We imagined the presence of a manager (IT system administrator) in
+charge of reporting the status of each space and transition of the
+building. It was a simple approach for the purpose of the validation
+Fig. 12. Macro graph of model 1 revealing a valid design.
+Fig. 13. Macro graph of model 2 revealing a non-valid design due to isolated spaces.
+A. Hamieh, et al.
+Autom
+ation in Construction 113 (2020) 103120
+13
+prototype. The perspective, if this system was implemented at a real
+scale, would be to combine manual input with automatic input, by
+means of a building management system, in which the status of each lift
+and escalator could be controlled (switch on, switch oﬀ) and supervised
+(in function/malfunctioning).
+In the internal level, the same space, possibly cluttered with ob-
+stacles, was used to show, in the case of horizontal navigation, that
+BiMov was able to conﬁrm or deny the possibilities of indoor navigation
+for a proﬁle, depending on its size, outside buﬀer zones representing the
+obstacles to avoid, in 2D for a ground movement, in 3D for a movement
+in space.
+The BIM model is implicitly considered as a numerical twin of the
+physical building. The calendar of events represents a small step toward
+this situation. In a near future, with the development of the Internet of
+Things (IoT), any physical component of the building, will potentially
+be identiﬁed, located, supervised, this will be totally feasible. For the
+moment, furniture elements can be statically, but eﬃciently re-
+presented in a BIM, by “IfcBuildingElementProxy”. Considering a con-
+tinuously updated numerical twin of a building or a stable BIM ﬁle in
+which furniture elements are statically represented does not impact the
+requirement to take into account the space occupied by these potential
+obstacles.
+These illustrations thus conﬁrm BiMov's ability to ﬁnd auto-
+matically, where possible, the optimal path indoor, depending on the
+navigator proﬁle and the conjunctural state of the spaces and transi-
+tions of the building.
+6. Conclusion
+With the rapid development and concentration of urbanized areas,
+buildings in large metropolitan areas are becoming increasingly com-
+plex and interconnected. This complexity poses many challenges for
+Fig. 14. Visualization of design ﬂaws in Model 2.
+Fig. 15. Path for a visitor when the lift is available.
+A. Hamieh, et al.
+Autom
+ation in Construction 113 (2020) 103120
+14
+managers, occupants, and visitors. Demand for ﬂuid internal mobility
+calls for the need to generate automatic indoor path plans inside these
+buildings.
+This paper describes an original approach called BiMov for indoor
+path planning. The proposed system automatically extracts and man-
+ages geometric and semantic information from a building model in IFC
+format to reveal the topological connectivity between spaces. The na-
+vigation model is represented by graphs over three levels of detail
+(Macro between spaces, External between spaces through transitions,
+Internal to spaces). The External and Internal graphs are reduced ac-
+cording to the proﬁle of the Mobile Object or Person (physical dimen-
+sions, abilities, and authorisations) and according to the planned
+availability status of each space and transition. The Dijkstra's algorithm
+is used to determine the optimal path in the graphs for a MOoP. The
+weights associated to the edges in the Dijsktra's algorithm represent the
+Euclidean distance between the connected vertices. The open source
+IfcOpenShell was used to implement the system and verify its ability to
+represent diﬀerent scenarios.
+This scientiﬁc research has generated signiﬁcant IT development
+but this is insuﬃcient to cover the variety of cases likely to be found in
+complex buildings. Future lines of research include improving the
+performance and robustness of BiMov, as well as addressing new sci-
+entiﬁc issues that the current limits inspire. Concerning the External
+graph, the system cannot manage a situation in which there is a cor-
+ridor around a central room with several transitions between the cor-
+ridor and the room because each space is represented by only one node,
+whereas there need to be as many nodes as there are gates leading to
+the space. Concerning the Internal level, it would be interesting to
+deﬁne the concept of Point Of Interest (POI) to represent indoor targets
+such as a welcome desk, a cash machine or a coﬀee machine.
+Fig. 16. Path for a visitor when the lift is unavailable.
+Fig. 17. Path of a service agent when the lift is unavailable.
+A. Hamieh, et al.
+Autom
+ation in Construction 113 (2020) 103120
+15
+Fig. 18. No path found for pallet truck when the lift is unavailable.
+Fig. 19. Path of a pallet truck without disruption of the lift.
+Fig. 20. Internal 2D optimal path for a biped visitor.
+A. Hamieh, et al.
+Autom
+ation in Construction 113 (2020) 103120
+16
+In addition, due to the possible absence of IFC model (old buildings,
+historic monuments, buildings with missing or inappropriate digital
+mock-up), an important issue to consider for future research is how to
+construct a BiMov model with no BIM? With the increasing use of 3D
+scanners in the construction industry, the reconstruction of the BIM
+model from scanned point clouds is receiving more and more attention.
+With point clouds, several methods in the literature could be applied to
+identify semantical data such as places to visit (spaces), obstacles
+(walls, stabs, columns), and gates (stairs, doors, windows), and geo-
+metrical data (dimensions), for which the original algorithms of the
+BiMov initiative could be used to reveal the topological data (con-
+nectivity graphs).
+References
+[1] I. Afyouni, Knowledge Representation and Management in Indoor Mobile
+Environments, Université de Bretagne Occidentale (Brest), 2013, https://tel.
+archives-ouvertes.fr/tel-00956812/document.
+[2] United Nations, Department of economic and social aﬀairs, World's Population
+Increasingly Urban With More Than Half Living in Urban Areas, https://www.un.
+org/development/desa/en/news/population/world-urbanization-prospects.html,
+(2014).
+[3] T. Roberts, We Spend 90% of Our Time Indoors. Says Who? https://www.
+buildinggreen.com/blog/we-spend-90-our-time-indoors-says-who, (2016).
+[4] E.-P. Stoﬀel, Hierarchical Graphs as Organisational Principle and Spatial Model
+Applied to Pedestrian Indoor Navigation (Ph.D. thesis), LMU Munich, 2009,
+https://edoc.ub.uni-muenchen.de/106209/.
+[5] L. Liu, Indoor semantic modelling for routing: the two-level routing approach for
+indoor navigation, Archit. Built Environ. (17) (2017) 1–252 https://journals.open.
+tudelft.nl/index.php/abe/article/view/1879.
+[6] Y.-H. Lin, Y.-S. Liu, G. Gao, X.-G. Han, C.-Y. Lai, M. Gu, The IFC-based path planning
+for 3D indoor spaces, Adv. Eng. Inform. 27 (2) (2013) 189–205, https://doi.org/10.
+1016/j.aei.2012.10.001.
+[7] T. Lopez, Path Planning and Posture Adaptation in Dynamic Environments, INSA de
+Rennes, 2012, https://tel.archives-ouvertes.fr/tel-00767784.
+[8] J. Choi, J. Choi, I. Kim, Development of BIM-based evacuation regulation checking
+system for high-rise and complex buildings, Autom. Constr. 46 (2014) 38–49,
+https://doi.org/10.1016/j.autcon.2013.12.005.
+[9] C. Copot, A. Hernandez, T.T. Mac, R. De Keyse, Collision-free path planning in
+indoor environment using a quadrotor, 2016 21st International Conference on
+Methods and Models in Automation and Robotics (MMAR), 2016, pp. 351–356, ,
+https://doi.org/10.1109/MMAR.2016.7575160.
+[10] S. Zlatanova, S.S.K. Baharin, Optimal navigation of ﬁrst responders using DBMS,
+3rd international conference on information systems for crisis response and man-
+agement 4th international symposium on geoInformation for disaster management,
+Citeseer, 2008, pp. 541–544 http://citeseerx.ist.psu.edu/viewdoc/summary?doi=
+10.1.1.563.6975.
+[11] A.A. Diakité, S. Zlatanova, Spatial subdivision of complex indoor environments for
+3D indoor navigation, Int. J. Geogr. Inf. Sci. 32 (2) (2018) 213–235, https://doi.
+org/10.1080/13658816.2017.1376066.
+[12] H. Tashakkori, A. Rajabifard, M. Kalantari, A new 3D indoor/outdoor spatial model
+for indoor emergency response facilitation, Build. Environ. 89 (2015) 170–182,
+https://doi.org/10.1016/j.buildenv.2015.02.036.
+[13] U. Isikdag, S. Zlatanova, J. Underwood, A BIM-oriented model for supporting in-
+door navigation requirements, Comput. Environ. Urban. Syst. 41 (2013) 112–123,
+https://doi.org/10.1016/j.compenvurbsys.2013.05.001.
+[14] L. Liu, S. Zlatanova, An approach for indoor path computation among obstacles that
+considers user dimension, ISPRS Int. J. Geo Inf. 4 (4) (2015) 2821–2841, https://
+doi.org/10.3390/ijgi4042821.
+[15] BuildingSmart, Building Smart, Industry Foundation Classes (IFC), https://
+standards.buildingsmart.org/IFC/RELEASE/IFC4_1/FINAL/HTML/schema/
+ifcproductextension/lexical/ifcspace.htm, (2013).
+[16] C. Fu, G. Aouad, A. Lee, A. Mashall-Ponting, S. Wu, IFC model viewer to support nD
+model application, Automation in Construction 15 (2) (2006) 178–185, https://doi.
+org/10.1016/j.autcon.2005.04.002 http://www.sciencedirect.com/science/
+article/pii/S0926580505000610.
+[17] R. de Laat, L. van Berlo, Integration of BIM and GIS: The Development of the
+CityGML GeoBIM Extension, (2011), pp. 211–225, https://doi.org/10.1007/978-3-
+642-12670-3_13 ISBN: 978-3-642-12669-7.
+[18] Open Geospatial Consortium, City Geography Markup Language (CityGML)
+Encoding Standard, version: 2.0.0, https://portal.opengeospatial.org/ﬁles/?
+artifact_id=47842, (2012).
+[19] F. Mortari, Automatic Extraction of Improved Geometrical Network Model from
+CityGML for Indoor Navigation (Ph.D. thesis),, 2013. https://3d.bk.tudelft.nl/pdfs/
+FilippoMortari_thesis.pdf.
+[20] H.-K. Kang, K.-J. Li, A standard indoor spatial data model-ogc indoorgml and im-
+plementation approaches, ISPRS Int. J. Geo Inf. 6 (4) (2017) 116, https://doi.org/
+10.3390/ijgi6040116.
+[21] H.-G. Ryoo, T. Kim, K.-J. Li, Comparison between two OGC standards for indoor
+space: CityGML and IndoorGML, 1:1–1:8, Proceedings of the Seventh ACM
+SIGSPATIAL International Workshop on Indoor Spatial Awareness, ACM, New York,
+NY, USA, 2015, , https://doi.org/10.1145/2834812.2834813.
+[22] A. Swingler, S. Ferrari, A cell decomposition approach to cooperative path planning
+and collision avoidance via disjunctive programming, 49th IEEE Conference on
+Decision and Control (CDC), 2010, pp. 6329–6336, , https://doi.org/10.1109/CDC.
+2010.5717137.
+[23] L. Yang, M. Worboys, Generation of navigation graphs for indoor space, Int. J.
+Geogr. Inf. Sci. 29 (10) (2015) 1737–1756, https://doi.org/10.1080/13658816.
+2015.1041141.
+[24] H. Kaluer, M. Brezak, I. Petrović, A visibility graph based method for path planning
+in dynamic environments, 2011 Proceedings of the 34th International Convention
+MIPRO, 2011, pp. 717–721 https://ieeexplore.ieee.org/abstract/document/
+5967147.
+[25] R. Marie, H.B. Said, J. Stéphant, O. Labbani-Igbida, Visual servoing on the gen-
+eralized Voronoï diagram using an omnidirectional camera, J. Intell. Robot. Syst. 94
+(3-4) (2019) 793–804, https://doi.org/10.1007/s10846-018-0855-z.
+[26] I. Afyouni, C. Ray, C. Christophe, Spatial models for context-aware indoor navi-
+gation systems: a survey, J. Spat. Inf. Scie. 1 (4) (2012) 85–123, https://doi.org/10.
+5311/JOSIS.2012.4.73 https://hal.archives-ouvertes.fr/hal-00731055.
+[27] M.-B. Hu, R. Jiang, Y.-H. Wu, W.-X. Wang, Q.-S. Wu, Urban traﬃc from the per-
+spective of dual graph, Eur. Phys. J. B 63 (1) (2008) 127–133, https://doi.org/10.
+1140/epjb/e2008-00219-5.
+[28] D. Ding, Z. Pan, D. Cuiuri, H. Li, N. Larkin, Adaptive path planning for wire-feed
+additive manufacturing using medial axis transformation, J. Clean. Prod. 133
+(2016) 942–952, https://doi.org/10.1016/j.jclepro.2016.06.036.
+[29] S. Tsuzuki, D. Yanagisawa, K. Nishinari, Auto-generation of centerline graphs from
+geometrically complex roadmaps of real-world traﬃc systems using hierarchical
+quadtrees for cellular automata simulations, Inform. Sci. 504 (2019) 161–177,
+https://doi.org/10.1016/j.ins.2019.07.049.
+[30] J. Choi, H. Kim, I. Kim, Open BIM-based quantity take-oﬀ system for schematic
+estimation of building frame in early design stage, J. Comput. Des. Eng. 2 (1) (2015)
+16–25, https://doi.org/10.1016/j.jcde.2014.11.002.
+[31] Semi-automatic and speciﬁcation-compliant cost estimation for tendering of
+building projects based on IFC data of design model, Autom. Constr. 30 (2013)
+126–135, https://doi.org/10.1016/j.autcon.2012.11.020.
+[32] M. Zhiliang, W. Zhenhua, S. Wu, L. Zhe, Application and extension of the IFC
+standard in construction cost estimating for tendering in China, Autom. Constr. 20
+(2) (2011) 196–204, https://doi.org/10.1016/j.autcon.2010.09.017 building
+Information Modeling and Changing Construction Practices.
+[33] S. Zhang, K. Sulankivi, M. Kiviniemi, I. Romo, C.M. Eastman, J. Teizer, BIM-based
+fall hazard identiﬁcation and prevention in construction safety planning, Saf. Sci.
+72 (2015) 31–45, https://doi.org/10.1016/j.ssci.2014.08.001.
+[34] S. Zhang, J. Teizer, J.-K. Lee, C.M. Eastman, M. Venugopal, Building information
+modeling (BIM) and safety: automatic safety checking of construction models and
+schedules, Autom. Constr. 29 (2013) 183–195, https://doi.org/10.1016/j.autcon.
+Fig. 21. Internal 3D optimal path for a drone.
+A. Hamieh, et al.
+Autom
+ation in Construction 113 (2020) 103120
+17
+2012.05.006.
+[35] F. Mirahadi, B. McCabe, A. Shahi, IFC-centric performance-based evaluation of
+building evacuations using ﬁre dynamics simulation and agent-based modeling,
+Autom. Constr. 101 (2019) 1–16, https://doi.org/10.1016/j.autcon.2019.01.007.
+[36] W. Yan, C. Culp, R. Graf, Integrating BIM and gaming for real-time interactive ar-
+chitectural visualization, Autom. Constr. 20 (4) (2011) 446–458, https://doi.org/
+10.1016/j.autcon.2010.11.013.
+[37] S. Taneja, B. Akinci, J.H. Garrett, L. Soibelman, Algorithms for automated gen-
+eration of navigation models from building information models to support indoor
+map-matching, Autom. Constr. 61 (2016) 24–41, https://doi.org/10.1016/j.autcon.
+2015.09.010.
+[38] C. Koch, M. Neges, M. Knig, M. Abramovici, Natural markers for augmented reality-
+based indoor navigation and facility maintenance, Autom. Constr. 48 (2014) 18–30,
+https://doi.org/10.1016/j.autcon.2014.08.009.
+[39] P. Boguslawski, L. Mahdjoubi, V. Zverovich, F. Fadli, Automated construction of
+variable density navigable networks in a 3D indoor environment for emergency
+response, Automation in Construction 72 (2016) 115–128, https://doi.org/10.
+1016/j.autcon.2016.08.041.
+[40] V.E. Zverovich, L. Mahdjoubi, P. Boguslawski, F. Fadli, Analytic prioritization of
+indoor routes for search and rescue operations in hazardous environments, Comput.
+Aided Civ. Inf. Eng. 32 (2017) 727–747, https://doi.org/10.1111/mice.12260.
+[41] J.-K. Lee, C.M. Eastman, J. Lee, M. Kannala, Y.-S. Jeong, Computing walking dis-
+tances within buildings using the universal circulation network, Environ. Plann. B.
+Plann. Des. 37 (4) (2010) 628–645, https://doi.org/10.1068/b35124.
+[42] N. Li, B. Becerik-Gerber, B. Krishnamachari, L. Soibelman, A BIM centered indoor
+localization algorithm to support building ﬁre emergency response operations,
+Autom. Constr. 42 (2014) 78–89, https://doi.org/10.1016/j.autcon.2014.02.019.
+[43] J. Shin, J.-K. Lee, Indoor walkability index: BIM-enabled approach to quantifying
+building circulation, Autom. Constr. 106 (2019) 102845, https://doi.org/10.1016/
+j.autcon.2019.102845 http://www.sciencedirect.com/science/article/pii/
+S0926580519300627.
+[44] T.-A. Teo, K.-H. Cho, BIM-oriented indoor network model for indoor and outdoor
+combined route planning, Adv. Eng. Inform. 30 (3) (2016) 268–282, https://doi.
+org/10.1016/j.aei.2016.04.007.
+[45] S. Kang, E. Miranda, Planning and visualization for automated robotic crane erec-
+tion processes in construction, Autom. Constr. 15 (4) (2006) 398–414, https://doi.
+org/10.1016/j.autcon.2005.06.008 the ﬁrst conference on the Future of the AEC
+Industry (BFC05).
+[46] A. Soltani, H. Tawﬁk, J. Goulermas, T. Fernando, Path planning in construction
+sites: performance evaluation of the Dijkstra, A*, and GA search algorithms, Adv.
+Eng. Inform. 16 (4) (2002) 291–303, https://doi.org/10.1016/S1474-0346(03)
+00018-1.
+[47] Institut National de Recherche et de Sécurité, Le guide de la circulation en en-
+treprise (2010), http://www.inrs.fr/media.html?refINRS=ED\%20975.
+[48] A. Hamieh, Planiﬁcation automatique de chemin à l’intérieur de bâtiments basée
+sur un modèle bim, Université de Valenciennes et du Hainaut-Cambrésis, 2018,
+https://tel.archives-ouvertes.fr/tel-01962131.
+[49] A. Hamieh, D. Deneux, C. TAHON, BiMov : vers une analyse dynamique de
+navigabilité dans les bâtiments, Tanger, Morocco, 10th international conference
+"Conception et Production Intégrées", 2015 https://hal.archives-ouvertes.fr/hal-
+01260729.
+[50] A. Hamieh, D. Deneux, C. Tahon, BiMov: BIM-Based Indoor Path Planning, in:
+B. Eynard, V. Nigrelli, S.M. Oliveri, G. Peris-Fajarnes, S. Rizzuti (Eds.), Advances on
+Mechanics, Design Engineering and Manufacturing, Lecture Notes in Mechanical
+Engineering, Springer, Cham, 2017, , https://doi.org/10.1007/978-3-319-45781-9_
+89 ISBN: 978-3-319-45780-2.
+[51] O. Brock, J. Trinkle, F. Ramos, Hybrid Motion Planning Using Minkowski Sums,
+online ISBN 9780262258623 MIT Press, 2009, p. 336 https://ieeexplore.ieee.org/
+document/6284872.
+[52] IfcOpenShell Accessed: 20-Jan-2020, http://ifcopenshell.org/.
+[53] Open CASCADE Accessed: 20-Jan-2020, https://www.opencascade.com/.
+A. Hamieh, et al.
+Autom
+ation in Construction 113 (2020) 103120
+18

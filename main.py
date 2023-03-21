@@ -24,7 +24,7 @@ def main():
     # Continue to ask user for input until 'exit' is entered
    while True:
        print("Enter your question for GPT.")
-       query  = input("Your Query: ")
+       query = input("Your Query: ")
        if query.lower() == "exit":
            break
        else :
