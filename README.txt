@@ -14,3 +14,4 @@ pip install transformers
 pip install tensorflow
 pip install nltk
 /maybe pip install numpy
+as well as google drive packages from other github

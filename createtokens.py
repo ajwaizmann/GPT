@@ -5,6 +5,8 @@ from transformers import GPT2TokenizerFast
 import numpy as np
 from nltk.tokenize import sent_tokenize
 import pandas as pd
+import openai
+from decouple import config
 
 #google files
 import os
@@ -23,6 +25,7 @@ def count_tokens(text: str) -> int:
     #count the number of tokens in a string
     return len(tokenizer.encode(text))
 
+#doesnt work dont really know why
 def reduce_long(
     long_text: str, long_text_tokens: bool = False, max_len: int = 590
 ) -> str:
@@ -47,7 +50,7 @@ def getTokensFromFile(filepath):
     output = []
     counter = 0
     while line != "":
-        line = txtfile.read(1000)
+        line = txtfile.read(2000)
         header = "header " + str(counter)
         output += [(txtfile.name, header, line, count_tokens(line))]
         counter += 1
@@ -99,13 +102,66 @@ def buildService():
             except HttpError as error:
                 print('An error occurred: {}'.format(error))
 
+def get_questions(context):
+    try:
+        response = openai.Completion.create(
+            engine="davinci-instruct-beta-v3",
+            prompt=f"Write questions based on the text below\n\nText: {context}\n\nQuestions:\n1.",
+            temperature=0,
+            max_tokens=257,
+            top_p=1,
+            frequency_penalty=0,
+            presence_penalty=0,
+            stop=["\n\n"]
+        )
+        return response['choices'][0]['text']
+    
+    except openai.error.APIError as e:
+    #Handle API error here, e.g. retry or log
+        print(f"OpenAI API returned an API Error: {e}")
+        return ""
+        
+    except openai.error.APIConnectionError as e:
+    #Handle connection error here
+        print(f"Failed to connect to OpenAI API: {e}")
+        return ""
+        
+    except openai.error.RateLimitError as e:
+    #Handle rate limit error (we recommend using exponential backoff)
+        print(f"OpenAI API request exceeded rate limit: {e}")
+        return ""
+    
+    except openai.error.InvalidRequestError as e:
+        print(f"OpenAI API request invalid: {e}")
+        return ""
+        
+    except openai.error.AuthenticationError as e:
+        print(f"OpenAI API Authentication invalid: {e}")
+        return ""
+    
+    except:
+        print("Error occured")
+        return ""
 
 
 if __name__ == '__main__':
+    openai.api_key = config("APIKEY")
+
     res = buildService()
     df = pd.DataFrame(res, columns = ["title", "header", "content", "tokens"])
     df = df[df.tokens>40]
     # df = df.drop_duplicates(['title','heading'])
-    # df = df.reset_index().drop('index',axis=1) # reset index
+    df = df.reset_index().drop('index',axis=1) # reset index'
+    #check total token numbers in all papers
+    # sum = 0
+    # for num in df["tokens"]:
+    #     sum += num
+    # print(sum)
+    df["context"] = df.title + "\n" + df.header + "\n\n" + df.content
     df.head()
-    df.to_csv('testing.csv', index=False)
+    df["questions"]= df.context.apply(get_questions)
+    df["questions"] = df.questions
+    print(df["tokens"])
+    print(df[["questions"]].values[0][0])
+    print(df["questions"])
+    
